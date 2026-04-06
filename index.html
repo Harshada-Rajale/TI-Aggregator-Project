@@ -6,14 +6,26 @@
     <title>Threat Intelligence Aggregator | Portfolio Demo</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 40px 20px; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-top: 5px; }
         .badge { background-color: #27ae60; color: white; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; display: inline-block; margin-bottom: 15px; }
-        .btn { background-color: #e74c3c; color: white; border: none; padding: 15px 25px; font-size: 16px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; margin-top: 10px; }
+        p { line-height: 1.6; color: #555; }
+        
+        /* Grid for the input boxes */
+        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 25px; margin-bottom: 20px; }
+        @media (max-width: 768px) { .input-grid { grid-template-columns: 1fr; } }
+        
+        .input-box { background: #ecf0f1; padding: 15px; border-radius: 5px; border: 1px solid #bdc3c7; }
+        .input-box h3 { margin-top: 0; color: #2980b9; font-size: 16px; margin-bottom: 10px; }
+        textarea { width: 100%; height: 180px; font-family: 'Courier New', Courier, monospace; font-size: 13px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; resize: vertical; background: #fff; }
+        
+        .btn { background-color: #e74c3c; color: white; border: none; padding: 15px 25px; font-size: 16px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; width: 100%; margin-top: 10px; }
         .btn:hover { background-color: #c0392b; }
+        
         .results-box { background: #2c3e50; color: #ecf0f1; padding: 25px; border-radius: 5px; margin-top: 25px; font-family: monospace; white-space: pre-wrap; display: none; }
-        .success { color: #2ecc71; font-weight: bold; margin-top: 20px; display: none; font-size: 18px; }
+        .success { color: #2ecc71; font-weight: bold; margin-top: 20px; display: none; font-size: 18px; text-align: center; }
         .high-risk { color: #e74c3c; font-weight: bold; margin-bottom: 8px; font-size: 15px; }
+        .safe-msg { color: #2ecc71; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -21,7 +33,35 @@
 <div class="container">
     <div class="badge">Live Interactive Demo</div>
     <h1>Threat Intelligence Aggregator</h1>
-    <p>This is a client-side demonstration of the TI Aggregator toolkit built by Harshada Rajale. Click the button below to correlate simulated OSINT text feeds and Firewall CSV logs to generate a master blocklist.</p>
+    <p>This is a client-side demonstration of the TI Aggregator toolkit built by Harshada Rajale. In a real-world SOC, this tool ingests external OSINT watchlists and correlates them against internal firewall logs to identify active network threats.</p>
+    
+    <p><strong>Instructions:</strong> The boxes below are pre-loaded with simulated file data. You can click <em>Run Correlation Engine</em> to see how the tool finds overlaps, or you can delete the text and paste your own data to test the logic!</p>
+
+    <div class="input-grid">
+        <div class="input-box">
+            <h3>📄 Feed A: OSINT Watchlist (.txt format)</h3>
+            <textarea id="feedAInput">
+# OSINT Malicious IP and Hash List
+# Last Updated: 2026-04-05
+192.168.1.100
+10.0.0.55
+malicious-domain.com
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+phishing-site.net
+            </textarea>
+        </div>
+        
+        <div class="input-box">
+            <h3>📊 Feed B: Firewall Logs (.csv format)</h3>
+            <textarea id="feedBInput">
+Timestamp,Indicator,Type,Severity
+2026-04-05,10.0.0.55,IP,High
+2026-04-05,172.16.0.2,IP,Medium
+2026-04-05,malicious-domain.com,Domain,Critical
+2026-04-05,5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8,Hash,High
+            </textarea>
+        </div>
+    </div>
     
     <button id="runBtn" class="btn">Run Correlation Engine</button>
 
@@ -31,28 +71,12 @@
         <h3 style="color: white; margin-top: 0; border-bottom: 1px solid #7f8c8d; padding-bottom: 10px;">Correlation Engine Output:</h3>
         <div id="outputArea"></div>
         <br>
-        <p style="color: #bdc3c7; font-size: 13px;">[ System Message ] The high_risk_blocklist.txt file has been virtually populated with the above indicators.</p>
+        <p style="color: #bdc3c7; font-size: 13px;">[ System Message ] In a production environment, the high_risk_blocklist.txt file would be automatically exported and applied to the firewall.</p>
     </div>
 </div>
 
 <script>
-    // 1. Simulated Threat Feeds
-    const feedA = `
-    # OSINT Malicious IP and Hash List
-    192.168.1.100
-    10.0.0.55
-    malicious-domain.com
-    e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-    phishing-site.net
-    `;
-
-    const feedB = `Timestamp,Indicator,Type,Severity
-    2026-04-05,10.0.0.55,IP,High
-    2026-04-05,172.16.0.2,IP,Medium
-    2026-04-05,malicious-domain.com,Domain,Critical
-    2026-04-05,5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8,Hash,High`;
-
-    // 2. Validation Logic
+    // Validation Logic
     function isValidIP(ip) {
         const regex = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
         return regex.test(ip);
@@ -63,20 +87,24 @@
         return regex.test(hash);
     }
 
-    // 3. Execution on Button Click
+    // Execution on Button Click
     document.getElementById('runBtn').addEventListener('click', function() {
-        // Parse Feed A (Ignore comments)
+        // Grab the live text from the textareas
+        const feedAText = document.getElementById('feedAInput').value;
+        const feedBText = document.getElementById('feedBInput').value;
+
+        // Parse Feed A (Ignore comments starting with #)
         let indicatorsA = new Set();
-        feedA.split('\n').forEach(line => {
+        feedAText.split('\n').forEach(line => {
             let trimmed = line.trim();
             if (trimmed && !trimmed.startsWith('#')) {
                 indicatorsA.add(trimmed);
             }
         });
 
-        // Parse Feed B (Extract from CSV format)
+        // Parse Feed B (Extract from CSV format - assumed Column 2 is the Indicator)
         let indicatorsB = new Set();
-        let linesB = feedB.split('\n');
+        let linesB = feedBText.split('\n');
         for (let i = 1; i < linesB.length; i++) {
             let parts = linesB[i].split(',');
             if (parts.length >= 2) {
@@ -91,13 +119,17 @@
         let outputArea = document.getElementById('outputArea');
         outputArea.innerHTML = '';
         
-        correlated.forEach(ioc => {
-            let type = "Domain/URL";
-            if (isValidIP(ioc)) type = "IP Address";
-            else if (isValidHash(ioc)) type = "SHA-256 Hash";
-            
-            outputArea.innerHTML += `<div class="high-risk">[!] HIGH RISK - Repeated IOC Found: ${ioc} (${type})</div>`;
-        });
+        if (correlated.length > 0) {
+            correlated.forEach(ioc => {
+                let type = "Domain/URL";
+                if (isValidIP(ioc)) type = "IP Address";
+                else if (isValidHash(ioc)) type = "SHA-256 Hash";
+                
+                outputArea.innerHTML += `<div class="high-risk">[!] HIGH RISK - Repeated IOC Found: ${ioc} (${type})</div>`;
+            });
+        } else {
+            outputArea.innerHTML += `<div class="safe-msg">[+] No overlapping threats detected. Network appears safe from Feed A indicators.</div>`;
+        }
 
         // Show the hidden HTML elements
         document.getElementById('successMsg').style.display = 'block';
